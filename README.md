@@ -1,1 +1,1 @@
-#  Copyright (c) 2015 by China Youke Communication Co. Ltd.  All rights reserved.
+#  Copyright (c) 2015 by Cancer Cloud Communication Co. Ltd.  All rights reserved.
