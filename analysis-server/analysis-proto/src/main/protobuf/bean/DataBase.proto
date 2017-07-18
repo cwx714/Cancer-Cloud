@@ -1,0 +1,78 @@
+/**
+ * 终端设备实时状态数据的消息定义。
+ *
+ * 1、终端设备实时状态数据是由终端设备定时上报的、动态变化的信息(如：位置信息、速度信息等)。接入平台会合并上报的或缓存的实时状态数据，并保存到数据库。
+ *
+ * 2、接入平台只处理和保存被导入到平台上的终端设备的实时状态数据。
+ *
+ * 3、实时状态数据只有1个有效的详情数据。详情数据的类型是根据设备类型的类别决定的。1类设备类型只对应1类详情数据。不同类型设备上报的不同格式的详情数据，根据设备
+ * 类型的类别，被统一成相同格式的详情数据。
+ *
+ * 4、如果实时状态数据是只针对某个子设备的实时状态(如：充电枪等)，则实时状态数据的子设备标识信息必须与子设备的实际信息一致。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.data";
+option go_package       = "com.chargerlink.gateway.bean.data";
+option csharp_namespace = "com.chargerlink.gateway.bean.data";
+option java_multiple_files = false;
+
+import "bean/EnumBase.proto";
+import "bean/DataVehicle.proto";
+import "bean/DataRecorder.proto";
+import "bean/DataCharger.proto";
+import "bean/DataParking.proto";
+
+/** 终端设备实时状态数据的消息定义。其中：上报消息详情的定义分别在以下文件中：DataVehicle.proto、DataCharger.proto、DataRecorder.proto。*/
+message DataInfo {
+	required DeviceType device_type   = 1;                          /// (必填)终端设备类型。
+	required string     device_id     = 2;                          /// (必填)终端设备ID。格式由对应类型设备自行定义, 设备类型和设备ID组成设备的全局唯一标识。
+	required string     sub_device    = 3;                          /// (必填)子设备标识信息。其中：主设备标识为""，充电枪的标识为"plug=充电枪ID"。
+	required int64      data_time     = 4;                          /// (必填)数据采集的时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required int32      data_type     = 5;                          /// (必填)数据类型。数据值为DataType常量的按位组合。
+	oneof               data_detail {                               /// (必填)终端设备实时状态数据消息。可选类型如下：
+		DataVehicle     data_vehicle  = 100;                        ///    电动车TBOX设备的实时状态数据。
+		DataRecorder    data_recorder = 200;                        ///    行车记录仪/后视镜设备的实时状态数据。
+		DataCharger     data_charger  = 300;                        ///    充电桩TCU设备的实时状态数据。
+		DataParking     data_parking  = 400;                        ///    车位地锁/车位传感器设备的实时状态数据。
+	}
+}
+
+/** 终端设备实时状态数据列表的消息定义。*/
+message DataList {
+	repeated DataInfo data_list = 1;                                /// (必填)实时数据的列表。
+}
+
+/** 终端设备行程信息的消息定义。目前只支持行车记录仪设备。*/
+message TrackInfo {
+	required DeviceType device_type  = 1;                           /// (必填)终端设备类型。
+	required string     device_id    = 2;                           /// (必填)终端设备ID。格式由对应类型设备自行定义, 设备类型和设备ID组成设备的全局唯一标识。
+	required int64      track_id     = 3;                           /// (必填)行程ID。采用行程开始的毫秒时间戳作为行程的ID。
+	required int64      data_time    = 4;                           /// (必填)数据采集的时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required int64      start_time   = 5;                           /// (必填)行程的开始时间(北京时间的毫秒时间戳)。单位：毫秒。
+	optional int64      stop_time    = 6;                           /// (可选)行程的结束时间(北京时间的毫秒时间戳)。单位：毫秒。0：表示行程未结束。
+	optional bool       is_power_on  = 7;                           /// (可选)行程启动时是否加电。
+	optional bool       is_power_off = 8;                           /// (可选)行程结束时是否断电。
+	optional string     stop_pic     = 9;                           /// (可选)行程结束时停车图片的URL。缺省：空串，表示行程未结束或图片上传失败。
+	optional DataInfo   stop_data    = 10;                          /// (可选)行程结束时设备的实时数据信息。
+}
+
+/** 终端设备行程信息列表的消息定义。目前只支持行车记录仪设备。*/
+message TrackList {
+	repeated TrackInfo track_list = 1;                              /// (必填)行程信息的列表。
+}
+
+/** 终端设备上传媒体信息的消息定义。目前只支持行车记录仪设备。*/
+message MediaInfo {
+	required DeviceType device_type = 1;                            /// (必填)终端设备类型。
+	required string     device_id   = 2;                            /// (必填)终端设备ID。格式由对应类型设备自行定义, 设备类型和设备ID组成设备的全局唯一标识。
+	required int64      data_time   = 3;                            /// (必填)数据采集的时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required int64      session_id  = 4;                            /// (必填)上传的唯一标识。如果上传类型为行程结束图片，则必须与行程的track_id相同。
+	required UploadType upload_type = 5;                            /// (必填)上传类型。
+	required string     file_url    = 6;                            /// (必填)上传文件的下载地址。
+	required int64      file_size   = 7;                            /// (必填)上传文件长度。
+	required string     mime_type   = 8;                            /// (必填)上传文件类型。
+	optional DataInfo   data_info   = 9;                            /// (可选)上传时设备实时数据信息。
+}

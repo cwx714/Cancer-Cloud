@@ -1,0 +1,33 @@
+/**
+ * 行车记录仪/后视镜设备报警消息的消息定义。目前报警消息与终端实际上传消息的对应关系如下：
+ *
+ * 1、接入平台接收到行车记录仪/后视镜设备上传的AlarmReport消息时，会产生AlarmRecorder报警消息：
+ *
+ * 2、接入平台根据行车记录仪/后视镜设备上传的PosReport/ObdReport/TrackReport消息计算出符合报警条件时，会产生AlarmRecorderRa报警消息。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.alarm";
+option go_package       = "com.chargerlink.gateway.bean.alarm";
+option csharp_namespace = "com.chargerlink.gateway.bean.alarm";
+option java_multiple_files = false;
+
+import "bean/AlarmParameter.proto";
+import "bean/DataRecorder.proto";
+import "google/protobuf/any.proto";
+
+/** 行车记录仪/后视镜设备的报警数据的消息定义。报警代码：30000～40000。必须与报警代码字典表的数据一致。*/
+message AlarmRecorder {
+	required DataRecorder        recorder_data = 1;                 /// (必填)报警时行车记录仪/后视镜设备实时上报的数据。
+	optional int64               alarm_file_id = 2;                 /// (可选)上传的报警文件ID。可使用QueryMediaInfo接口获取文件的链接。null：表示未上传报警文件。
+	optional google.protobuf.Any extend_data   = 100;               /// (可选)自定义扩展的报警数据。
+}
+
+/** 接入平台根据行车记录仪/后视镜设备的实时上报数据计算出的报警数据的消息定义。报警代码：130000～140000。必须与报警代码字典表的数据一致。*/
+message AlarmRecorderRa {
+	required AlarmParameter      alarm_param = 1;                   /// (必填)计算报警的配置参数。
+	repeated DataRecorder        data_list   = 2;                   /// (可选)报警时行车记录仪/后视镜设备实时上报的数据列表。
+	optional google.protobuf.Any extend_data = 100;                 /// (可选)自定义扩展的报警数据。
+}

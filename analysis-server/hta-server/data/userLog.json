@@ -1,0 +1,5 @@
+{"logID":"logID1111", "userID":"userID1234","time":"20161103","typed":"0","location":"shanghai","consumed":"100"}
+{"logID":"logID2222", "userID":"userID2234","time":"20161103","typed":"0","location":"beijing","consumed":"200"}
+{"logID":"logID3333", "userID":"userID3234","time":"20161103","typed":"0","location":"guangzhou","consumed":"300"}
+{"logID":"logID4444", "userID":"userID4234","time":"20161103","typed":"0","location":"chashang","consumed":"400"}
+{"logID":"logID5555", "userID":"userID5234","time":"20161103","typed":"0","location":"tianjing","consumed":"500"}

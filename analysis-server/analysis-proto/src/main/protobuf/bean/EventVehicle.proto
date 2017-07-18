@@ -1,0 +1,12 @@
+/**
+ * 电动车TBOX设备事件消息的消息定义。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.event";
+option go_package       = "com.chargerlink.gateway.bean.event";
+option csharp_namespace = "com.chargerlink.gateway.bean.event";
+option java_multiple_files = false;
+

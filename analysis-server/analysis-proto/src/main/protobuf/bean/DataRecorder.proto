@@ -1,0 +1,46 @@
+/**
+ * 行车记录仪设备实时状态数据的消息定义。目前DataRecorder与终端实际上传消息的对应关系如下：
+ *
+ * 1、接入平台根据行车记录仪/后视镜设备上传的以下消息组成DataRecorder消息：
+ *
+ * （1）、PosReport消息。
+ *
+ * （2）、ObdReport消息。
+ *
+ * （3）、TrackReport消息。
+ *
+ * 2、接入平台会合并设备上传的不同消息，并在每次接收到PosReport消息时，将合并的DataRecorder消息保存到数据库。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.data";
+option go_package       = "com.chargerlink.gateway.bean.data";
+option csharp_namespace = "com.chargerlink.gateway.bean.data";
+option java_multiple_files = false;
+
+import "bean/DataVehicle.proto";
+import "google/protobuf/any.proto";
+
+/** 行车记录仪/后视镜设备实时状态数据的消息定义。*/
+message DataRecorder {
+	required DataVehPos          pos_data    = 1;                   /// (必填)位置信息。
+	required int64               track_id    = 2;                   /// (必填)行程ID。采用行程开始的毫秒时间戳作为行程的ID。
+	map<int32, int32>            stat_list   = 3;                   /// (可选)行程统计信息列表。格式为：行程统计项->行程统计值。其中：行程统计项使用StatType常量的值。
+	optional google.protobuf.Any extend_data = 100;                 /// (可选)记录仪扩展数据的数组。
+
+	/** 行程统计项的常量定义。*/
+	enum StatType {
+		STAT_ACCELERATE_CNT = 0;                                    /// 急加速次数。
+		STAT_DECELERATE_CNT = 1;                                    /// 急减速次数。
+		STAT_OVERSPEED_CNT  = 2;                                    /// 超速次数。
+		STAT_TURNOVER_CNT   = 3;                                    /// 车辆翻滚次数。
+		STAT_TOTAL_MILEAGE  = 10;                                   /// 行程总行驶里程。单位：米。
+		STAT_TOTAL_OIL      = 11;                                   /// 行程总耗油量。单位：升。
+		STAT_MAX_SPEED      = 12;                                   /// 最大速度。单位：米/秒。
+		STAT_MAX_ROTATE     = 13;                                   /// 发动机最高转速。单位：rpm。
+		STAT_MAX_TEMP       = 14;                                   /// 发动机最高温度。单位：°C。
+	}
+}
+

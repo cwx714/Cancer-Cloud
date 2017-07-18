@@ -1,0 +1,51 @@
+/**
+ * 数据分析平台接口的通用消息和常量的定义。
+ */
+
+syntax = "proto3";
+
+package com.chargerlink.gateway.analyser;
+
+/** 接口返回结果的消息定义。*/
+message Result {
+    enum ResultCode {
+        RESULT_SUCCESS         = 0;                         /// 操作成功。
+        RESULT_UNAUTHORIZED    = 10;                        /// 操作失败，未授权。
+        RESULT_INVALID_DEVICE  = 11;                        /// 操作失败，无效的设备信息。
+        RESULT_INVALID_PARAM   = 12;                        /// 操作失败，无效的请求参数。
+        RESULT_PROCESS_ERROR   = 20;                        /// 操作失败，处理失败。
+        RESULT_PROCESS_TIMEOUT = 21;                        /// 操作失败，处理超时。
+        RESULT_GENERIC_ERROR   = 100;                       /// 操作失败，其他错误。
+    }
+    ResultCode code       = 1;                              /// (必填)操作结果。
+    int32      extra_code = 2;                              /// (可选)操作附加返回值。当操作结果为失败时，可以用于返回其他附加错误代码。
+    string     extra_msg  = 3;                              /// (可选)操作附加返回信息。当操作结果为失败时，可以用于返回其他附加错误信息。
+}
+
+/** 数据值的消息定义。*/
+message Value {
+    oneof v {                                               /// (必填)数据值。可选类型如下：
+        double d = 1;                                       ///    Double类型数值。
+        int32  i = 2;                                       ///    Integer类型数值。
+        int64  l = 3;                                       ///    Long类型数值。
+        string s = 4;                                       ///    String类型数值。
+    }
+}
+
+/** 终端设备的设备类型的常量定义。对应文件bean/EnumBase.proto的定义。*/
+enum DeviceType {
+    DEVICE_DEFAULT         = 0;                             /// 缺省设备类型。
+    DEVICE_VEHICLE_GB_V1   = 100;                           /// 基于国标GB/T32960-2016协议的电动汽车TBOX设备。
+    DEVICE_CHARGER_CL_V1   = 110;                           /// ChargeLink公司基于v1版MQTT协议的充电桩TCU设备。
+    DEVICE_CHARGER_CL_V2   = 111;                           /// ChargeLink公司基于v2版MQTT协议的充电桩TCU设备。
+    DEVICE_RECORDER_AMI_V1 = 120;                           /// Amitek公司基于v1版MQTT协议的行车记录仪/后视镜设备。
+}
+
+/** 接入平台实时计算上报数据生成报警数据的配置参数的消息定义。对应文件bean/AlarmParameter.proto的定义。*/
+message AlarmParameter {
+    string parameter_id  = 1;                               /// (必填)配置参数ID。
+    int32  remind_type   = 2;                               /// (可选)报警提醒方式。
+    string remind_text   = 3;                               /// (可选)报警提醒内容。
+    string remind_target = 4;                               /// (可选)报警提醒目标。如：手机号/邮箱/QQ号/微信号等。
+}
+

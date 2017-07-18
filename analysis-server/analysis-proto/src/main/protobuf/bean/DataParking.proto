@@ -1,0 +1,55 @@
+/**
+ * 车位地锁/车位探测器设备实时状态数据的消息定义。目前DataParking与终端实际上传消息的对应关系如下：
+ *
+ * 1、接入平台根据车位地锁/车位探测器设备上传的以下消息组成DataParking消息：
+ *
+ * （1）、ChargeLink公司v1版协议的SensorStatusNotification消息、ChargeLink公司v2版协议的SystemTelemetryReq消息。
+ *
+ * 2、接入平台会合并设备上传的不同消息，并在每次接收到SensorStatusNotification/SystemTelemetryReq消息时，将合并的DataParking消息保存到数据库。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.data";
+option go_package       = "com.chargerlink.gateway.bean.data";
+option csharp_namespace = "com.chargerlink.gateway.bean.data";
+option java_multiple_files = false;
+
+import "bean/EnumParking.proto";
+
+/** 车位地锁/车位探测器设备实时状态数据的消息定义。*/
+message DataParking {
+	required PkDeviceType   parking_type   = 1;                     /// (必填)车位设备类型。范围：PK_COMP_PKL，车位地锁；PK_COMP_PKD，车位探测器。
+	optional uint32         parking_id     = 2;                     /// (可选)车位设备编号。此编号为车位设备在其归属设备内的编号，非全局的设备编号。
+	required int64          parking_time   = 10;                    /// (必填)车位地锁/车位探测器数据采集时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required PkDeviceStatus parking_status = 11;                    /// (必填)车位地锁/车位探测器工作状态。
+	repeated DataPkMeasure  measure_list   = 20;                    /// (可选)车位地锁/车位探测器遥测数据列表。
+	repeated DataPkAlarm    alarm_list     = 30;                    /// (可选)车位地锁/车位探测器报警数据列表。
+}
+
+/** 车位地锁/车位探测器设备遥测数据的消息定义。*/
+message DataPkMeasure {
+	required PkDeviceType comp_type  = 1;                           /// (必填)设备组件类型。
+	optional uint32       comp_idx   = 2;                           /// (可选)设备组件编号。如：风扇1、风扇2；电表1、电表2等。null：表示只有1个设备组件。
+	optional PkMeasureLoc location   = 4;                           /// (可选)设备组件的遥测位置。
+	repeated MeasureValue value_list = 5;                           /// (必填)遥测数据列表。
+
+	/** 遥测数据值的消息定义。*/
+	message MeasureValue {
+		required PkMeasureType measurand = 1;                       /// (必填)遥测参数。
+		optional string        extension = 2;                       /// (可选)扩展遥测参数名。当遥测参数为0时有效。
+		required int32         value     = 3;                       /// (必填)遥测值。
+	}
+}
+
+/** 车位地锁/车位探测器设备报警数据的消息定义。*/
+message DataPkAlarm {
+	required PkAlarmCode  code      = 1;                            /// (必填)告警代码。
+	optional string       name      = 2;                            /// (可选)扩展告警名。当告警代码为0时有效。
+	optional string       info      = 3;                            /// (可选)告警相关信息。
+	optional PkAlarmLevel level     = 4;                            /// (必填)告警等级。
+	optional int64        timestamp = 5;                            /// (必填)告警发生时的时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required PkDeviceType comp_type = 6;                            /// (必填)告警所关联的设备组件类型。
+	optional uint32       comp_idx  = 7;                            /// (可选)告警所关联的设备组件编号。如：风扇1、风扇2；电表1、电表2等。null：表示只有1个设备组件。
+}

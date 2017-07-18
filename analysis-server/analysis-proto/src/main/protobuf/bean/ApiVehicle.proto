@@ -1,0 +1,144 @@
+/**
+ * 电动车TBOX设备的API接口请求/应答的消息定义。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.api";
+option go_package       = "com.chargerlink.gateway.bean.api";
+option csharp_namespace = "com.chargerlink.gateway.bean.api";
+option java_multiple_files = false;
+
+/** 电动车国标TBOX的命令请求的消息定义。*/
+message CommandVehicleGB_v1 {
+	oneof               command {                                   /// (必填)电动车国标TBOX的命令请求。可选类型如下：
+		CmdGetParameter get_parameter  = 0x80;                      ///    查询终端运行参数的命令。对应电动车国标'0x80参数查询命令'。
+		CmdSetParameter set_parameter  = 0x81;                      ///    设置终端运行参数的命令。对应电动车国标'0x81参数设置命令'。
+		CmdRemoteUpdate remote_update  = 0x8201;                    ///    远程升级的命令。对应电动车国标'0x82车载终端控制命令'的'0x01远程升级'。
+		CmdGeneral      device_turnoff = 0x8202;                    ///    车载终端关机的命令。对应电动车国标'0x82车载终端控制命令'的'0x02车载终端关机'。
+		CmdGeneral      device_reset   = 0x8203;                    ///    车载终端复位的命令。对应电动车国标'0x82车载终端控制命令'的'0x03车载终端复位'。
+		CmdGeneral      device_restore = 0x8204;                    ///    车载终端恢复出厂设置的命令。对应电动车国标'0x82车载终端控制命令'的'0x04车载终端恢复出厂设置'。
+		CmdGeneral      net_disconnect = 0x8205;                    ///    断开数据通信链路的命令。对应电动车国标'0x82车载终端控制命令'的'0x05断开数据通信链路'。
+		CmdShowAlarm    show_alarm     = 0x8206;                    ///    车载终端报警/预警的命令。对应电动车国标'0x82车载终端控制命令'的'0x06车载终端报警/预警'。
+		CmdGeneral      start_check    = 0x8207;                    ///    开启抽样监测链路的命令。对应电动车国标'0x82车载终端控制命令'的'0x07开启抽样监测链路'。
+	}
+
+	/** 查询终端运行参数命令的消息定义。对应电动车国标'0x80查询命令'。*/
+	message CmdGetParameter {
+		repeated uint32 param_id_list = 1;                          /// (必填)查询参数ID列表。其中：参数ID为ParameterIdGB1的值，及厂商自定义扩展的值(ParameterIdWTM1)。
+	}
+
+	/** 设置终端运行参数命令的消息定义。对应电动车国标'0x81设置命令'。*/
+	message CmdSetParameter {
+		map<uint32, string> param_val_list = 1;                     /// (必填)设置参数ID和值列表。格式为：参数ID->参数值。其中：参数ID为ParameterIdGB1的值，及厂商自定义扩展的值(ParameterIdWTM1)。
+	}
+
+	/** 远程升级命令的消息定义。对应电动车国标'0x82车载终端控制命令'的'0x01远程升级'。*/
+	message CmdRemoteUpdate {
+		optional string apn_name         = 1;                       /// (必填)拨号点名称。升级服务器的无线通信拨号访问点APN，如果网络制式为CDMA则为PPP连接拨号号码。
+		optional string apn_username     = 2;                       /// (必填)升级服务器无线通信拨号用户名。
+		optional string apn_password     = 3;                       /// (必填)升级服务器无线通信拨号密码。
+		optional string server_addr      = 4;                       /// (必填)升级服务器地址。
+		optional uint32 server_port      = 5;                       /// (必填)升级服务器端口。
+		optional string factory_name     = 6;                       /// (必填)车载终端制造商ID。
+		optional string hardware_version = 7;                       /// (必填)硬件版本。
+		optional string firmware_version = 8;                       /// (必填)固件版本。
+		optional string update_url       = 9;                       /// (必填)升级URL地址。
+		optional uint32 update_timeout   = 10;                      /// (必填)连接到升级服务器时限。单位：1min，有效值范围： 0min～60000min。
+	}
+
+	/** 车载终端报警/预警命令的消息定义。对应电动车国标'0x82车载终端控制命令'的'0x06车载终端报警/预警'。*/
+	message CmdShowAlarm {
+		required uint32 alarm_level   = 1;                          /// (必填)警告等级。0x01：1级报警(最高警告)，0x02：2级报警，0x03：3级报警，0x04：4级预警，0x05：5级预警，0xFF：无效数据。
+		required string alarm_message = 2;                          /// (必填)报警信息。
+	}
+
+	/** 其他远程控制命令的消息定义。对应电动车国标'0x82车载终端控制命令'的其他命令。*/
+	message CmdGeneral {
+	}
+}
+
+/** 电动车国标TBOX的命令应答的消息定义。*/
+message ResultVehicleGB_v1 {
+	oneof               result {                                    /// (必填)电动车国标TBOX的命令响应，可选类型如下：
+		ResultParameter get_parameter  = 0x80;                      ///    查询终端运行参数命令的应答。对应电动车国标'0x80查询命令'
+		ResultGeneral   set_parameter  = 0x81;                      ///    设置终端运行参数命令的应答。对应电动车国标'0x81设置命令'。
+		ResultGeneral   remote_update  = 0x8201;                    ///    远程升级命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x01远程升级'。
+		ResultGeneral   device_turnoff = 0x8202;                    ///    车载终端关机命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x02车载终端关机'。
+		ResultGeneral   device_reset   = 0x8203;                    ///    车载终端复位命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x03车载终端复位'。
+		ResultGeneral   device_restore = 0x8204;                    ///    车载终端恢复出厂设置命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x04车载终端恢复出厂设置'。
+		ResultGeneral   net_disconnect = 0x8205;                    ///    断开数据通信链路命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x05断开数据通信链路'。
+		ResultGeneral   show_alarm     = 0x8206;                    ///    车载终端报警/预警命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x06车载终端报警/预警'。
+		ResultGeneral   start_check    = 0x8207;                    ///    开启抽样监测链路命令的应答。对应电动车国标'0x82车载终端控制命令'的'0x07开启抽样监测链路'。
+
+	}
+
+	/** 查询终端运行参数命令的应答消息定义。对应电动车国标'0x80查询命令'。*/
+	message ResultParameter {
+		map<uint32, string> param_val_list = 1;                     /// (必填)设置参数ID和值列表。格式为：参数ID->参数值。其中：参数ID为ParameterIdGB_v1的值，及厂商自定义扩展ParameterIdWTM_v1的值。
+	}
+
+	/** 其他命令的应答消息定义。对应电动车国标'0x81设置命令'/'0x82车载终端控制命令'。*/
+	message ResultGeneral {
+	}
+}
+
+/** 国标查询参数ID的常量定义。*/
+enum ParameterIdGB_v1 {
+	STORE_INTERVAL          = 0x01;                                 /// (读写参数)车载终端本地存储时间周期。数据类型：WORD，数据长度：2BYTE。单位：1ms，有效值范围：0ms～60000ms，0xFFFE：表示异常，0xFFFF：表示无效。
+	REPORT_INTERVAL         = 0x02;                                 /// (读写参数)正常时信息上报间周期有效值范围。数据类型：WORD，数据长度：2BYTE。单位：1s，有效值范围：0s～600s，0xFFFE：表示异常，0xFFFF：表示无效。
+	ALARM_INTERVAL          = 0x03;                                 /// (读写参数)报警时信息上间周期有效值范围。数据类型：WORD，数据长度：2BYTE。单位：1ms，有效值范围：0ms～60000ms，0xFFFE：表示异常，0xFFFF：表示无效。
+	REMOTE_SERVER_ADDR      = 0x05;                                 /// (读写参数)远程服务与管理平台域名。数据类型：STRING，数据长度：nBYTE。
+	REMOTE_SERVER_PORT      = 0x06;                                 /// (读写参数)远程服务与管理平台端口。数据类型：WORD，数据长度：2BYTE。有效值范围：0～65531，0xFFFE：表示异常，0xFFFF：表示无效。
+	HARDWARE_VERSION        = 0x07;                                 /// (只读参数)硬件版本，车载终端厂商自行定义。数据类型：STRING，数据长度：5BYTE。
+	FIRMWARE_VERSION        = 0x08;                                 /// (只读参数)固件版本，车载终端厂商自行定义。数据类型：STRING，数据长度：5BYTE。
+	HEARTBEAT_INTERVAL      = 0x09;                                 /// (读写参数)车载终端心跳发送周期。数据类型：BYTE，数据长度：1BYTE。单位：1s，有效值范围：0s～240s，0xFE：表示异常，0xFF：表示无效。
+	TERM_RESPONSE_TIMEOUT   = 0x0A;                                 /// (读写参数)终端应答超时间。数据类型：WORD，数据长度：2BYTE。单位：1s，有效值范围：0s～600s，0xFFFE：表示异常，0xFFFF：表示无效。
+	SERVER_RESPONSE_TIMEOUT = 0x0B;                                 /// (读写参数)平台应答超时间。数据类型：WORD，数据长度：2BYTE。单位：1s，有效值范围：0s～600s，0xFFFE：表示异常，0xFFFF：表示无效。
+	RELOGIN_INTERVAL        = 0x0C;                                 /// (读写参数)连续三次登入失败后下一次重试的时间间隔。数据类型：BYTE，数据长度：1BYTE。单位：1m，有效值范围：0m～240m，0xFE：表示异常，0xFF：表示无效。
+	PUBLIC_SERVER_ADDR      = 0x0E;                                 /// (读写参数)公共平台域名。数据类型：STRING，数据长度：nBYTE。
+	PUBLIC_SERVER_PORT      = 0x0F;                                 /// (读写参数)公共平台端口。数据类型：WORD，数据长度：2BYTE。有效值范围：0～65531，0xFFFE：表示异常，0xFFFF：表示无效。
+	IN_CHECK_STATUS         = 0x10;                                 /// (读写参数)是否处于抽样监测中。数据类型：BYTE，数据长度：1BYTE。0x01：是，0x02：否，0xFE：表示异常，0xFF：表示无效。
+}
+
+/** 沃特玛公司扩展查询参数ID的常量定义。*/
+enum ParameterIdWTM_v1 {
+	MAIN_HALL_IDX         = 0x80;                                   /// (只读参数)主霍尔安装位置。类型：WORD。单位：1个。
+	MAIN_HALL_BIAS        = 0x81;                                   /// (只读参数)主霍尔电流零偏。类型：BYTE。单位：1A。
+	MAIN_HALL_CURRENT     = 0x82;                                   /// (只读参数)主霍尔额定电流。类型：WORD。单位：1A。
+	MAIN_HALL_VOLTAGE     = 0x83;                                   /// (只读参数)主霍尔额定电压。类型：WORD。单位：1V。
+	BALANCE_CURRENT       = 0x84;                                   /// (读写参数)均衡电流。类型：WORD。单位：1A。
+	VOL_ALARM_HIGH_LIMIT  = 0x85;                                   /// (读写参数)电压报警上限。类型：WORD。单位：0.001V。 
+	VOL_CUTOFF_HIGH_LIMIT = 0x86;                                   /// (读写参数)电压切断上限。类型：WORD。单位：0.001V。 
+	VOL_ALARM_LOW_LIMIT   = 0x87;                                   /// (读写参数)电压报警下限。类型：WORD。单位：0.001V。 
+	VOL_CUTOFF_LOW_LIMIT  = 0x88;                                   /// (读写参数)电压切断下限。类型：WORD。单位：0.001V。 
+	VOL_DIFF_HIGH_LIMIT   = 0x89;                                   /// (读写参数)电压差异上限。类型：WORD。单位：0.001V。 
+	TEMP_ALARM_HIGH_LIMIT = 0x8a;                                   /// (读写参数)温度报警上限。类型：BYTE。单位：1°C。 
+	SOC_ALARM_LOW_LIMIT   = 0x8b;                                   /// (读写参数)SOC报警下限。类型：BYTE。单位：1%。 
+	MAX_CHARGE_CURRENT    = 0x8c;                                   /// (读写参数)最大充电电流。类型：WORD。单位：0.1A。
+	MAX_DISCHARGE_CURRENT = 0x8d;                                   /// (读写参数)最大放电电流。类型：WORD。单位：0.1A。 
+	BATTERY_VOLTAGE       = 0x8e;                                   /// (读写参数)电池额定电压。类型：WORD。单位：0.1V。 
+	BATTERY_ELECTRICITY   = 0x8f;                                   /// (读写参数)电池标称容量。类型：WORD。单位：1Ah。 
+	MAX_CYCLE_NUM         = 0x90;                                   /// (读写参数)最大循环次数。类型：DWORD。单位：1次。
+	INITIAL_SOC_VALUE     = 0x91;                                   /// (读写参数)初始SOC值。类型：WORD。单位：1%。  
+	HEAT_START_TEMP       = 0x92;                                   /// (读写参数)加热开启温度。类型：BYTE。单位：1%。 
+	HEAT_STOP_TEMP        = 0x93;                                   /// (读写参数)加热关闭温度。类型：BYTE。单位：1%。
+	FAN_START_TEMP        = 0x94;                                   /// (读写参数)风扇开启温度。类型：BYTE。单位：1%。
+	FAN_STOP_TEMP         = 0x95;                                   /// (读写参数)风扇关闭温度。类型：BYTE。单位：1%。 
+	VOL_CTRL_HIGH_LIMIT   = 0x96;                                   /// (读写参数)电压控制高点。类型：WORD。单位：0.1V。
+	VOL_CTRL_LOW_LIMIT    = 0x97;                                   /// (读写参数)电压控制低点。类型：WORD。单位：0.1V。
+	DCDC_START_TEMP       = 0x98;                                   /// (读写参数)DCDC开启温度。类型：BYTE。单位：1°C。
+	DCDC_STOP_TEMP        = 0x99;                                   /// (读写参数)DCDC关闭温度。类型：BYTE。单位：1°C。
+	TOTAL_MODULE_NUM      = 0x9a;                                   /// (只读参数)总模块数，类型：WORD。单位：1个。范围：1～65535。 
+	TOTAL_PACK_NUM        = 0x9b;                                   /// (只读参数)总单体串数，类型：WORD。单位：1串。范围：1～65535。
+	BMS_HARDWARE_VERSION  = 0x9c;                                   /// (只读参数)BMS硬件版本号。类型：WORD。
+	BMS_SOFTWARE_VERSION  = 0x9d;                                   /// (只读参数)BMS软件版本号。类型：WORD。 
+	BMS_EXTEND_VERSION    = 0x9e;                                   /// (只读参数)BMS扩展版本号。类型：WORD。
+	CAN_BOX_VERSION       = 0x9f;                                   /// (只读参数)CAN盒版本号。类型：WORD。0xFE：异常，0xFF：无效。
+	VOL_CONNECTOR_TEMP    = 0xa0;                                   /// (只读参数)动力线高压接插件温度。类型：BYTE。单位：1°C。
+	DEV_WAKEUP_INTERVAL   = 0xa1;                                   /// (读写参数)终端定时唤醒周期。类型：DWORD。单位：1秒。
+	DEV_WAKEUP_DURATION   = 0xa2;                                   /// (读写参数)终端唤醒时长。类型：DWORD。单位：1秒。
+	DBC_FILE_VERSION      = 0xa3;                                   /// (只读参数)DBC文件版本号。类型：STRING。
+}
+

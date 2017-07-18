@@ -1,0 +1,26 @@
+/**
+ * 充电桩TCU设备信息的消息定义。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.device";
+option go_package       = "com.chargerlink.gateway.bean.device";
+option csharp_namespace = "com.chargerlink.gateway.bean.device";
+option java_multiple_files = false;
+
+import "bean/EnumCharger.proto";
+
+/** ChargeLink公司的充电桩TCU设备信息的消息定义。设备类型：DEVICE_CHARGER_CL_V1/DEVICE_CHARGER_CL_V2，设备ID：最多9位数字的字符串。*/
+message DeviceChargerCL_v2 {
+	optional string      vendor_id        = 1;                      /// (可选)供应商名称。缺省：空串。
+	optional string      model_number     = 2;                      /// (可选)设备型号。缺省：空串。
+	optional string      serial_number    = 3;                      /// (可选)设备序列号。缺省：空串。
+	optional string      firmware_version = 4;                      /// (可选)固件版本号。缺省：空串。
+	optional string      protocol_version = 5;                      /// (可选)协议版本号。缺省：空串。
+	optional string      client_version   = 6;                      /// (可选)客户端程序版本号。缺省：空串。
+    optional string      sim_iccid        = 7;                      /// (可选)SIM卡ICCID号。缺省：空串。
+	optional uint32      plug_num         = 10;                     /// (可选)充电枪数量。每个充电桩可以有多个充电枪。缺省：0，表示数量未知。
+	repeated ChgPlugType plug_type        = 11;                     /// (可选)充电枪类型列表。
+}

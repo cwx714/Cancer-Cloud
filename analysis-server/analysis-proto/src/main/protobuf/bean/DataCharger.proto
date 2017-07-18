@@ -1,0 +1,283 @@
+/**
+ * 充电桩TCU设备实时状态数据的消息定义。目前DataCharger与终端实际上传消息的对应关系如下：
+ *
+ * 1、接入平台根据充电桩TCU设备上传的以下消息组成DataCharger消息：
+ *
+ * （1）、ChargeLink公司v2版协议的HeartbeatReq消息。
+ *
+ * （2）、ChargeLink公司v1版协议的StatusNotification消息、ChargeLink公司v2版协议的StatusNotificationReq消息。
+ *
+ * （3）、ChargeLink公司v1版协议的TransactionStarted/TransactionStopped消息、ChargeLink公司v2版协议的StartTransactionReq/StopTransactionReq/ChargingProcessInfoReq消息。
+ *
+ * （4）、ChargeLink公司v1版协议的Measure消息、ChargeLink公司v2版协议的SystemTelemetryReq消息。
+ *
+ * 2、接入平台会合并设备上传的不同消息，并在每次接收到Measure/SystemTelemetry消息时，将合并的DataCharger消息保存到数据库。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.data";
+option go_package       = "com.chargerlink.gateway.bean.data";
+option csharp_namespace = "com.chargerlink.gateway.bean.data";
+option java_multiple_files = false;
+
+import "bean/EnumCharger.proto";
+import "google/protobuf/any.proto";
+
+/** 充电桩TCU设备实时状态数据的消息定义。*/
+message DataCharger {
+	required DataChgEvse         evse_data   = 1;                   /// (必填)充电桩状态数据。
+	map<uint32, DataChgPlug>     plug_list   = 2;                   /// (可选)充电枪状态数据列表。格式为：充电枪ID->充电枪状态数据。
+	map<uint32, DataChgOrder>    order_list  = 10;                  /// (可选)当前充电订单数据列表。格式为：充电枪ID->当前充电订单数据。
+	map<uint32, DataChgCharge>   charge_list = 11;                  /// (可选)当前充电车辆数据列表。格式为：充电枪ID->当前充电车辆数据。
+	optional google.protobuf.Any extend_data = 100;                 /// (可选)充电桩扩展数据的数组。
+}
+
+/** 充电桩状态数据的消息定义。*/
+message DataChgEvse {
+	required int64          evse_time    = 10;                      /// (必填)充电桩数据采集时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required ChgEvseStatus  evse_status  = 11;                      /// (必填)充电桩工作状态。
+	repeated DataChgMeasure measure_list = 20;                      /// (可选)充电桩遥测数据列表。只包含ComponentType不为COMPONENT_TYPE_CCM/COMPONENT_TYPE_CONN/COMPONENT_TYPE_PKL/COMPONENT_TYPE_PKD的遥测数据。
+	repeated DataChgAlarm   alarm_list   = 30;                      /// (可选)充电桩报警数据列表。只包含ComponentType不为COMPONENT_TYPE_CCM/COMPONENT_TYPE_CONN/COMPONENT_TYPE_PKL/COMPONENT_TYPE_PKD的报警数据。
+}
+
+/** 充电枪状态数据的消息定义。*/
+message DataChgPlug {
+	required uint32          plug_id       = 1;                     /// (必填)充电枪ID(从1开始)。
+	optional ChgPlugType     plug_type     = 2;                     /// (可选)充电枪类型。
+	required int64           plug_time     = 10;                    /// (必填)充电枪数据采集时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required ChgPlugStatus   plug_status   = 11;                    /// (必填)充电枪工作状态。
+	repeated DataChgMeasure  measure_list  = 20;                    /// (可选)充电枪遥测数据列表。只包含ComponentType为COMPONENT_TYPE_CCM/COMPONENT_TYPE_CONN的遥测数据。
+	repeated DataChgAlarm    alarm_list    = 30;                    /// (可选)充电枪报警数据列表。只包含ComponentType为COMPONENT_TYPE_CCM/COMPONENT_TYPE_CONN的报警数据。
+}
+
+/** 当前充电订单数据的消息定义。只有当前充电桩处于充电状态时数据才有效。*/
+message DataChgOrder {
+	required uint32              plug_id       = 1;                 /// (必填)充电枪ID(从1开始)。
+	required int64               dev_order_id  = 2;                 /// (必填)充电桩生成的唯一充电记录号。
+	optional string              svp_order_id  = 3;                 /// (可选)业务系统生成的全局唯一充电订单号。此订单号是从“远程启动充电”请求消息或"充电开始请求事件"应答消息中获取的。
+	optional string              svp_book_id   = 4;                 /// (可选)业务系统生成的全局唯一预约订单号。此订单号是从“远程预约充电”请求消息中获取的。
+	optional ChgServiceType      service_type  = 5;                 /// (可选)充电服务类型。
+	optional string              pin_code      = 6;                 /// (可选)充电服务校验码。用户可以通过在充电桩屏幕输入pin码结束充电。
+	optional int32               error_code    = 7;                 /// (可选)充电桩故障码。如果充电桩故障导致开启异常或充电结束，填入充电桩故障码。
+	required int64               start_time    = 10;                /// (必填)充电开始时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required uint32              start_meter   = 11;                /// (必填)充电开始电表度数。单位：0.01kwh。
+	optional ChgStartType        start_type    = 12;                /// (可选)充电启动类型。
+	optional int64               current_time  = 13;                /// (充电未结束时必填)充电当前时间(北京时间的毫秒时间戳)。单位：毫秒。
+	optional uint32              current_meter = 14;                /// (充电未结束时必填)充电当前电表度数。单位：0.01kwh。
+	optional uint32              current_power = 15;                /// (可选)充电当前输出功率。单位：0.01kw。
+	optional int64               stop_time     = 16;                /// (充电结束时必填)充电结束时间(北京时间的毫秒时间戳)。单位：毫秒。
+	optional uint32              stop_meter    = 17;                /// (充电结束时必填)充电结束电表度数。单位：0.01kwh。
+	optional ChgStopType         stop_type     = 18;                /// (可选)充电结束原因。
+	optional bool                is_charged    = 20;                /// (可选)充电订单是否已经扣款。true：订单已扣款，false：订单未扣款。
+	optional bool                is_comfirmed  = 21;                /// (可选)充电订单后台是否已经确认。true：订单已确认，false：订单未确认。
+	required DataChgUser         user_info     = 22;                /// (必填)计费用户信息。
+	optional DataChgBill         bill_info     = 23;                /// (可选)计费账单信息。
+	optional OrderDeduction      deduct_info   = 24;                /// (可选)计费扣款信息。
+	optional OrderElecList       elec_list     = 25;                /// (可选)充电过程电量信息。
+	optional google.protobuf.Any device_extra  = 30;                /// (可选)设备附加信息。即需要透传到终端设备的自定义信息。具体使用和传输方法，根据设备类型自行实现。
+	optional google.protobuf.Any server_extra  = 31;                /// (可选)平台附加信息。即需要保存到服务器订单消息的自定义信息。具体使用和传输方法，根据设备类型自行处理。
+
+	/** 订单计费扣款的消息定义。*/
+	message OrderDeduction {
+		optional int32  money   = 1;                                /// (可选)扣款金额。单位：0.01元。
+		optional int32  balance = 2;                                /// (可选)钱包卡余额。单位：0.01元。
+		optional string tac     = 3;                                /// (可选)扣款交易验证码(TAC)。
+	}
+
+	/** 订单充电过程电量列表的消息定义。*/
+	message OrderElecList {
+		required uint32 interval  = 1;                              /// (必填)分片时间间隔。单位：1分钟。最小时间间隔15分钟。
+		optional bytes  elec_list = 2;                              /// (可选)分片电量数据。每2个字节表示一个时间点电量。最大不超过96个数据，即数组最大为192。单位：0.01kwh。
+	}
+
+	/** ChargerLink公司的设备附加信息的消息定义。*/
+	message OrderDeviceExtraCL1 {
+		optional string transparent_token = 1;                      //// (可选)透明传输到设备的TOKEN信息。
+	}
+
+	/** ChargerLink公司的平台附加信息的消息定义。*/
+	message OrderServerExtraCL1 {
+		optional int32  channel_id       = 1;                       /// (可选)订单来源类型。
+		optional string platform_id      = 2;                       /// (可选)平台标识ID。
+		optional string channel_order_id = 3;                       /// (可选)第三⽅订单。
+	}
+}
+
+/** 当前充电订单的用户信息的消息定义。只有当前充电桩处于充电状态时数据才有效。*/
+message DataChgUser {
+	required string      user_id   = 1;                             /// (必填)用户身份识别号。如：充电卡号、用户ID等。
+	optional ChgUserType user_type = 2;                             /// (可选)用户身份类型。
+	optional string      user_pass = 3;                             /// (可选)用户身份密码。为防止用户密码泄露，建议密码采用MD5或加密。
+}
+
+/** 当前充电订单的用户验证信息的消息定义。只有当前充电桩处于充电状态时数据才有效。*/
+message DataChgAuth {
+	required ChgAuthStatus auth_status  = 1;                        /// (必填)用户账户鉴权结果。
+	optional int64         expire_time  = 2;                        /// (可选)用户账户的失效时间(北京时间的毫秒时间戳)。单位：毫秒。
+	optional int32         user_balance = 3;                        /// (可选)用户账户的余额。单位：0.01元。
+}
+
+/** 当前充电订单的计费账单的消息定义。只有当前充电桩处于充电状态时数据才有效。*/
+message DataChgBill {
+	optional uint32   price_scheme_id = 1;                          /// (可选)计费模板ID。此订单将使用对应的计费模板计费。
+	optional uint32   total_money     = 2;                          /// (可选)整个充电服务总费用。单位：0.01元。如果为空，则根据详细消费项累加计算总费用。
+	repeated BillItem bill_list       = 3;                          /// (可选)组成充电服务总费用的详细消费项列表。消费项包括：分时计费的充电费、服务费、停车费等。
+
+	/** 计费账单的消费数据的消息定义。*/
+	message BillItem {
+		required uint32 tariff_id = 1;                              /// (必填)费率编号ID。在相同计费模板内，所有费率编号ID必须唯一。
+		required uint32 amount    = 2;                              /// (必填)消费量。消费量可以是按次、按时间或按电量的值。当消费量为按时间时，单位：1秒；当消费量为按电量时，单位：0.01kwh；当消费量为按次时，单位：1次。
+		optional uint32 money     = 3;                              /// (可选)消费费用。单位：0.01元。
+	}
+}
+
+/** 当前充电车辆数据的消息定义。只有当前充电桩处于充电状态时数据才有效。*/
+message DataChgCharge {
+	optional ChargeHandshakeInfo charge_handshake = 1;              /// (可选)充电握手阶段信息。
+	optional ChargeConfigInfo    charge_config    = 2;              /// (可选)充电配置阶段信息。
+	optional ChargeProcessInfo   charge_process   = 3;              /// (可选)充电进行阶段信息。
+	optional ChargeStopInfo      charge_stop      = 4;              /// (可选)充电结束阶段信息。
+
+	/** 充电握手阶段信息的消息定义。消息数据从充电机国标的'PGN 9728/CHM报文'、'PGN 9984/BHM报文'、'PGN 256/CRM报文'、'PGN 512/BRM报文'中获取。*/
+	message ChargeHandshakeInfo {
+		optional uint32 plug_id          = 1;                       /// (可选)充电枪ID。从充电机国标的'PGN 256/CRM报文'中获取。范围：0～0xFFFFFFFF。
+		optional string charger_protocol = 10;                      /// (可选)充电机通信协议版本号。从充电机国标的'PGN 9728/CHM报文'中获取。
+		optional int32  bms_max_voltage  = 20;                      /// (可选)充电车辆BMS最高允许充电电压。从充电机国标的'PGN 9984/BHM报文'中获取。单位：0.1V。
+		optional uint32 charger_status   = 30;                      /// (可选)充电机辨识结果。从充电机国标的'PGN 256/CRM报文'中获取。0x00：BMS不能辨识；0xAA：BMS能辨识。
+		optional string charger_area     = 31;                      /// (可选)充电站区域编码。从充电机国标的'PGN 256/CRM报文'中获取。
+		optional string bms_protocol     = 40;                      /// (可选)充电车辆BMS通信协议版本号。从充电机国标的'PGN 512/BRM报文'中获取。
+		optional uint32 battery_type     = 41;                      /// (可选)充电车辆电池类型。从充电机国标的'PGN 512/BRM报文'中获取。1：铅酸电池；2：镍氢电池；3：磷酸铁锂电池；4：锰酸锂电池；5：钴酸锂电池；6：三元材料电池；7：聚合物锂离子电池；8：钛酸锂电池；0xFF：其他电池。
+		optional uint32 battery_power    = 42;                      /// (可选)充电车辆整车动力蓄电池系统额定容量。从充电机国标的'PGN 512/BRM报文'中获取。单位：0.1kwh。
+		optional uint32 battery_voltage  = 43;                      /// (可选)充电车辆整车动力蓄电池系统额定总电压。从充电机国标的'PGN 512/BRM报文'中获取。单位：0.1V。
+		optional string battery_vendor   = 44;                      /// (可选)充电车辆电池生产厂商名称。从充电机国标的'PGN 512/BRM报文'中获取。
+		optional uint32 battery_serial   = 45;                      /// (可选)充电车辆电池组序号。从充电机国标的'PGN 512/BRM报文'中获取。
+		optional string battery_date     = 46;                      /// (可选)充电车辆电池组生产日期。从充电机国标的'PGN 512/BRM报文'中获取。格式：YYMMDD。
+		optional uint32 battery_cycles   = 47;                      /// (可选)充电车辆电池组充电次数。从充电机国标的'PGN 512/BRM报文'中获取。
+		optional int32  battery_owner    = 48;                      /// (可选)充电车辆电池组产权标识。从充电机国标的'PGN 512/BRM报文'中获取。0：租赁，1：车自有。
+		optional string vin_code         = 49;                      /// (可选)充电车辆车辆识别码。从充电机国标的'PGN 512/BRM报文'中获取。
+		optional string bms_version      = 50;                      /// (可选)充电车辆BMS软件版本号。从充电机国标的'PGN 512/BRM报文'中获取。
+	}
+
+	/** 充电配置阶段信息的消息定义。消息数据从充电机国标的'PGN 1536/BCP报文'、'PGN 2048/CML报文'、'PGN 2304/BRO报文'、'PGN 2560/CRO报文'中获取。*/
+	message ChargeConfigInfo {
+		optional uint32 cell_allow_voltage    = 10;                 /// (可选)充电车辆单体动力蓄电池最高允许充电电压。从充电机国标的'PGN 1536/BCP报文'中获取。单位：0.01V，范围：0.00V～24.00V。
+		optional uint32 battery_allow_current = 11;                 /// (可选)充电车辆最高允许充电电流。从充电机国标的'PGN 1536/BCP报文'中获取。单位：0.1A，偏移量：-400A，范围：-400.0A～6153.5A。
+		optional uint32 battery_total_power   = 12;                 /// (可选)充电车辆动力蓄电池标称总能量。从充电机国标的'PGN 1536/BCP报文'中获取。单位：0.1kwh，范围：0kwh～1000kwh。
+		optional uint32 battery_allow_voltage = 13;                 /// (可选)充电车辆最高允许充电总电压。从充电机国标的'PGN 1536/BCP报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 battery_allow_temp    = 14;                 /// (可选)充电车辆最高允许动力蓄电池温度。从充电机国标的'PGN 1536/BCP报文'中获取。单位：1°C，偏移：-50°C，范围：-50°C～200°C。
+		optional uint32 battery_current_soc   = 15;                 /// (可选)充电车辆整车动力蓄电池荷电状态(SOC)。从充电机国标的'PGN 1536/BCP报文'中获取。单位：0.1%，范围：0.0%～100.0%。
+		optional uint32 battery_current_vol   = 16;                 /// (可选)充电车辆整车动力蓄电池当前总电压。从充电机国标的'PGN 1536/BCP报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 charger_max_voltage   = 20;                 /// (可选)充电机最高输出电压。从充电机国标的'PGN 2048/CML报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 charger_min_voltage   = 21;                 /// (可选)充电机最低输出电压。从充电机国标的'PGN 2048/CML报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 charger_max_current   = 22;                 /// (可选)充电机最大输出电流。从充电机国标的'PGN 2048/CML报文'中获取。单位：0.1A，偏移量：-400A，范围：-400.0A～6153.5A。
+		optional uint32 charger_min_current   = 23;                 /// (可选)充电机最小输出电流。从充电机国标的'PGN 2048/CML报文'中获取。单位：0.1A，偏移量：-400A，范围：-400.0A～6153.5A。
+		optional uint32 battery_ready         = 30;                 /// (可选)BMS充电准备就绪状态。从充电机国标的'PGN 2304/BRO报文'中获取。0x00：BMS未准备好，0xAA：BMS准备就绪，0xFF：无效。
+		optional uint32 charger_ready         = 40;                 /// (可选)充电机输出准备就绪状态。从充电机国标的'PGN 2560/CRO报文'中获取。0x00：充电机未准备好，0xAA：充电机准备就绪，0xFF：无效。
+	}
+
+	/** 充电进行阶段信息的消息定义。消息数据从充电机国标的'PGN 4096/BCL报文'、'PGN 4352/BCS报文'、'PGN 4608/CCS报文'、'PGN 4864/BSM报文'、'PGN 5376/BMV报文'、'PGN 5632/BMT报文'中获取。*/
+	message ChargeProcessInfo {
+		optional uint32 bms_require_voltage    = 10;                /// (可选)充电车辆充电电压需求值。从充电机国标的'PGN 4096/BCL报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 bms_require_current    = 11;                /// (可选)充电车辆充电电流需求值。从充电机国标的'PGN 4096/BCL报文'中获取。单位：0.1A，偏移量：-400A，范围：-400.0A～6153.5A。
+		optional uint32 bms_require_mode       = 12;                /// (可选)充电车辆充电模式需求值。从充电机国标的'PGN 4096/BCL报文'中获取。0x01：恒压充电，0x02：恒流充电。
+		optional uint32 bms_measure_voltage    = 20;                /// (可选)充电车辆充电电压测量值。从充电机国标的'PGN 4352/BCS报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 bms_measure_current    = 21;                /// (可选)充电车辆充电电流测量值。从充电机国标的'PGN 4352/BCS报文'中获取。单位：0.1A，偏移量：-400A，范围：-400.0A～6153.5A。
+		optional uint32 bms_max_vol_value      = 22;                /// (可选)充电车辆最高单体动力蓄电池电压及其组号。从充电机国标的'PGN 4352/BCS报文'中获取。<Bit0～11>：蓄电池电压，单位：0.01V，范围：0.00V～24.00V；<Bit12～15>：蓄电池组号，范围：0～15。
+		optional uint32 bms_current_soc        = 23;                /// (可选)充电车辆当前荷电状态(SOC)。从充电机国标的'PGN 4352/BCS报文'中获取。单位：1%，范围：0%～100%。
+		optional uint32 bms_remain_time        = 24;                /// (可选)充电车辆估算剩余充电时间。从充电机国标的'PGN 4352/BCS报文'中获取。单位：1分钟，范围：0分钟～600分钟(大于600分钟按600分钟计算)。
+		optional uint32 charger_output_voltage = 30;                /// (可选)充电机充电电压输出值。从充电机国标的'PGN 4608/CCS报文'中获取。单位：0.1V，范围：0.0V～6553.5V。
+		optional uint32 charger_output_current = 31;                /// (可选)充电机充电电流输出值。从充电机国标的'PGN 4608/CCS报文'中获取。单位：0.1A，偏移量：-400A，范围：-400.0A～6153.5A。
+		optional uint32 charger_total_time     = 32;                /// (可选)充电机充电累计时间。从充电机国标的'PGN 4608/CCS报文'中获取。单位：1分钟，范围：0分钟～600分钟。
+		optional uint32 charger_enable_status  = 33;                /// (可选)充电机充电允许状态。从充电机国标的'PGN 4608/CCS报文'中获取。0x00：暂停，0x01：允许。
+		optional uint32 bms_max_vol_index      = 40;                /// (可选)充电车辆最高单体动力蓄电池电压所在编号。从充电机国标的'PGN 4864/BSM报文'中获取。范围：0～255。
+		optional uint32 bms_max_temp_value     = 41;                /// (可选)充电车辆最高动力蓄电池温度。从充电机国标的'PGN 4864/BSM报文'中获取。单位：1°C，偏移：-50°C，范围：-50°C～200°C。
+		optional uint32 bms_max_temp_index     = 42;                /// (可选)充电车辆最高温度检测点编号。从充电机国标的'PGN 4864/BSM报文'中获取。范围：0～255。
+		optional uint32 bms_min_temp_value     = 43;                /// (可选)充电车辆最低动力蓄电池温度。从充电机国标的'PGN 4864/BSM报文'中获取。单位：1°C，偏移：-50°C，范围：-50°C～200°C。
+		optional uint32 bms_min_temp_index     = 44;                /// (可选)充电车辆最低温度检测点编号。从充电机国标的'PGN 4864/BSM报文'中获取。范围：0～255。
+		optional uint32 bms_warn_status1       = 45;                /// (可选)充电车辆动力蓄电池状态信息1。从充电机国标的'PGN 4864/BSM报文'中获取。<Bit0～1>：单体动力蓄电池电压过高/过低，00：正常，01：过高，02：过低；<Bit2～3>：整车动力蓄电池荷电状态SOC过高/过低，00：正常，过高，02：过低；<Bit4～5>：动力蓄电池充电过电流，00：正常，01：过流，02：不可信；<Bit6～7>：动力蓄电池温度过高，00：正常，01：过高，02：不可信。
+		optional uint32 bms_warn_status2       = 46;                /// (可选)充电车辆动力蓄电池状态信息2。从充电机国标的'PGN 4864/BSM报文'中获取。<Bit0～1>：动力蓄电池绝缘状态，00：正常，01：不正常，02：不可信；<Bit2～3>：动力蓄电池组输出连接器连接状态，00：正常，01：不正常，02：不可信；<Bit4～5>：充电允许，00：禁止，01：允许。
+		repeated uint32 bms_cell_vol_list      = 50;                /// (可选)充电车辆单体动力蓄电池电压列表。从充电机国标的'PGN 5376/BMV报文'中获取。<Bit0～11>：蓄电池电压，单位：0.01V，范围：0.00V～24.00V；<Bit12～15>：蓄电池组号，范围：0～15。
+		repeated uint32 bms_cell_temp_list     = 60;                /// (可选)充电车辆动力蓄电池温度列表。从充电机国标的'PGN 5632/BMT报文'中获取。单位：1°C，偏移：-50°C，范围：-50°C～200°C。
+	}
+
+	/** 充电停止阶段信息的消息定义。消息数据从充电机国标的'PGN 6400/BST报文'、'PGN 6656/CST报文'、'PGN 7168/BSD报文'、'PGN 7424/CSD报文'中获取。*/
+	message ChargeStopInfo {
+		optional uint32 plug_id              = 1;                   /// (可选)充电枪ID。从充电机国标的'PGN 7424/CSD报文'中获取。范围：0～0xFFFFFFFF。
+		optional uint32 battery_stop_reason  = 10;                  /// (可选)充电车辆中止充电原因。从充电机国标的'PGN 6400/BST报文'中获取。<Bit0～1>：00：正常，01：达到所需SOC目标值，02：不可信；<Bit2～3>：00：正常，01：达到总电压设定值，02：不可信；<Bit4～5>：00：正常，01：达到单体电压设定值，02：不可信；<Bit6～7>：00：正常，01：充电机中止，02：不可信。
+		optional uint32 battery_stop_fault   = 11;                  /// (可选)充电车辆中止充电故障。从充电机国标的'PGN 6400/BST报文'中获取。<Bit0～1>：00：正常，01：绝缘故障，02：不可信；<Bit2～3>：00：正常，01：输出连接器过温，02：不可信；<Bit4～5>：00：正常，01：BMS元件、输出连接器过温，02：不可信；<Bit6～7>：00：正常，01：充电连接器故障，02：不可信；<Bit8～9>：00：正常，01：电池组温度过高，02：不可信；<Bit10～11>：00：正常，01：高压继电器故障，02：不可信；<Bit12～13>：00：正常，01：检测点2电压故障，02：不可信；<Bit14～15>：00：正常，01：其他故障，02：不可信。
+		optional uint32 battery_stop_error   = 12;                  /// (可选)充电车辆中止充电错误。从充电机国标的'PGN 6400/BST报文'中获取。<Bit0～1>：00：正常，01：电流超过需求值，02：不可信；<Bit2～3>：00：正常，01：电压异常，02：不可信。
+		optional uint32 charger_stop_reason  = 20;                  /// (可选)充电机中止充电原因。从充电机国标的'PGN 6656/CST报文'中获取。<Bit0～1>：00：正常，01：达到充电机设定的中止条件，02：不可信；<Bit2～3>：00：正常，01：人工中止，02：不可信；<Bit4～5>：00：正常，01：故障中止，02：不可信；<Bit6～7>：00：正常，01：BMS中止，02：不可信。
+		optional uint32 charger_stop_fault   = 21;                  /// (可选)充电机中止充电故障。从充电机国标的'PGN 6656/CST报文'中获取。<Bit0～1>：00：正常，01：充电机过温，02：不可信；<Bit2～3>：00：正常，01：充电连接器故障，02：不可信；<Bit4～5>：00：正常，01：充电机内部过温，02：不可信；<Bit6～7>：00：正常，01：所需电量不能传送，02：不可信；<Bit8～9>：00：正常，01：充电机急停，02：不可信；<Bit10～11>：00：正常，01：其他故障，02：不可信。
+		optional uint32 charger_stop_error   = 22;                  /// (可选)充电机中止充电错误。从充电机国标的'PGN 6656/CST报文'中获取。<Bit0～1>：00：正常，01：电流不匹配，02：不可信；<Bit2～3>：00：正常，01：电压异常，02：不可信。
+		optional uint32 battery_finish_soc   = 30;                  /// (可选)充电车辆中止荷电状态SOC。从充电机国标的'PGN 7168/BSD报文'中获取。单位：1%，范围：0%～100%。
+		optional uint32 battery_max_voltage  = 31;                  /// (可选)充电车辆动力蓄电池单体最高电压。从充电机国标的'PGN 7168/BSD报文'中获取。单位：0.01V，范围：0V～24.00V。
+		optional uint32 battery_min_voltage  = 32;                  /// (可选)充电车辆动力蓄电池单体最低电压。从充电机国标的'PGN 7168/BSD报文'中获取。单位：0.01V，范围：0V～24.00V。
+		optional uint32 battery_max_temp     = 33;                  /// (可选)充电车辆动力蓄电池最高温度。从充电机国标的'PGN 7168/BSD报文'中获取。单位：1°C，偏移：-50°C，范围：-50°C～200°C。
+		optional uint32 battery_min_temp     = 34;                  /// (可选)充电车辆动力蓄电池最低温度。从充电机国标的'PGN 7168/BSD报文'中获取。单位：1°C，偏移：-50°C，范围：-50°C～200°C。
+		optional uint32 charger_total_time   = 40;                  /// (可选)充电机累计充电时间。从充电机国标的'PGN 7424/CSD报文'中获取。单位：1分钟，范围：0分钟～600分钟。
+		optional uint32 charger_output_power = 41;                  /// (可选)充电机输出能量。从充电机国标的'PGN 7424/CSD报文'中获取。单位：0.1kwh，范围：0kwh～1000kwh。
+	}
+}
+
+/** 充电桩遥测数据的消息定义。*/
+message DataChgMeasure {
+	required ChgCompType   comp_type  = 1;                          /// (必填)设备组件类型。
+	optional uint32        comp_idx   = 2;                          /// (可选)设备组件编号。如：风扇1、风扇2；电表1、电表2等。null：表示只有1个设备组件。
+	optional uint32        plug_id    = 3;                          /// (可选)设备组件的充电接口ID。null：表示不属于充电接口的设备组件。
+	optional ChgMeasureLoc location   = 4;                          /// (可选)设备组件的遥测位置。
+	repeated MeasureValue  value_list = 5;                          /// (必填)遥测数据列表。
+
+	/** 遥测数据值的消息定义。*/
+	message MeasureValue {
+		required ChgMeasureType measurand = 1;                      /// (必填)遥测参数。
+		optional string         extension = 2;                      /// (可选)扩展遥测参数名。当遥测参数为0时有效。
+		required int32          value     = 3;                      /// (必填)遥测值。
+	}
+}
+
+/** 充电桩报警数据的消息定义。*/
+message DataChgAlarm {
+	required ChgAlarmCode  code         = 1;                        /// (必填)告警代码。
+	optional string        name         = 2;                        /// (可选)扩展告警名。当告警代码为0时有效。
+	optional string        info         = 3;                        /// (可选)告警相关信息。
+	optional ChgAlarmLevel level        = 4;                        /// (必填)告警等级。
+	optional int64         timestamp    = 5;                        /// (必填)告警发生时的时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required ChgCompType   comp_type    = 6;                        /// (必填)告警所关联的设备组件类型。
+	optional uint32        comp_idx     = 7;                        /// (可选)告警所关联的设备组件编号。如：风扇1、风扇2；电表1、电表2等。null：表示只有1个设备组件。
+	optional uint32        plug_id      = 8;                        /// (可选)告警所关联的充电接口ID。null：表示不属于充电接口的设备组件。
+	optional int64         dev_order_id = 9;                        /// (可选)告警所关联的充电交易记录ID。
+}
+
+/** 充电桩计费模板的消息定义。*/
+message DataChgPriceScheme {
+	required uint32         price_scheme_id   = 1;                  /// (必填)计费模板ID。在相同计费模板内，所有费率编号ID必须唯一。
+	optional string         price_scheme_desc = 2;                  /// (可选)计费模板的备注信息。
+	map<uint32, TariffList> tariff_set_list   = 3;                  /// (可选)费率集合的列表。格式为：费率类型->费率集合。其中：费率类型使用TariffType常量的值。
+
+	/** 计费模板的费率集合的消息定义。*/
+	message TariffList {
+		required ChgTariffType   tariff_type = 1;                   /// (必填)费率类型。
+		map<uint32, TariffPrice> tariff_list = 2;                   /// (必填)费率列表。格式为：费率编号ID->费率价格。如果此费率集合不分时段，则费率列表只有一个费率价格；如果此费率集合是分时段的，则费率列表包含多个不同分段时间的费率价格。
+		optional string          tariff_desc = 3;                   /// (可选)费率集合的备注信息。
+		optional uint32          tariff_time = 4;                   /// (可选)计费的计时单位。单位：1分钟。null：默认为30分钟。
+	}
+
+	/** 计费模板的费率价格的消息定义。*/
+	message TariffPrice {
+		required uint32          tariff_id     = 1;                 /// (必填)费率编号ID。
+		required uint32          price_money   = 2;                 /// (必填)费率价格，单位：0.01元。
+		optional string          price_desc    = 3;                 /// (可选)费率价格的备注信息。
+		optional uint32          start_time    = 4;                 /// (可选)每日分段费率的开始时间(24小时内绝对时间)。单位：1分，范围：0分～1440分。例如，420表示早上7:00点开始计费。
+		optional uint32          start_period  = 5;                 /// (可选)订单分段费率的开始时间(订单期间相对时间)。单位：1分钟。例如，120表示订单开始后120分钟开始计费。
+		optional ChgTariffPeriod tariff_period = 6;                 /// (可选)多费率电表计费的电量时段类型类型。当使用多费率电表时，使用此字段。
+	}
+}
+
+/** 充电桩计费时间段的消息定义。*/
+message DataChgPricePeriod {
+	required uint32 price_scheme_id = 1;                            /// (必填)计费模板ID。在相同计费模板内，所有费率编号ID必须唯一。
+	required int64  start_date      = 2;                            /// (必填)计费模版生效的起始时间(北京时间的毫秒时间戳)。单位：毫秒。
+	required int64  stop_date       = 3;                            /// (必填)计费模版生效的截止时间(北京时间的毫秒时间戳)。单位：毫秒。
+}

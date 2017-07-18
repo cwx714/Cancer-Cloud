@@ -1,0 +1,20 @@
+/**
+ * 接入平台实时计算上报数据生成报警数据的配置参数的消息定义。
+ */
+
+syntax = "proto2";
+
+package ChargerLink.Gateway;
+option java_package     = "com.chargerlink.gateway.bean.alarm";
+option go_package       = "com.chargerlink.gateway.bean.alarm";
+option csharp_namespace = "com.chargerlink.gateway.bean.alarm";
+option java_multiple_files = false;
+
+/** 接入平台实时计算上报数据生成报警数据的配置参数的消息定义。*/
+message AlarmParameter {
+	required string parameter_id  = 1;                              /// (必填)配置参数ID。
+	optional int32  remind_type   = 2;                              /// (可选)报警提醒方式。
+	optional string remind_text   = 3;                              /// (可选)报警提醒内容。
+	optional string remind_target = 4;                              /// (可选)报警提醒目标。如：手机号/邮箱/QQ号/微信号等。
+}
+
